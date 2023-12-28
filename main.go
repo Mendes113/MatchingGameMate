@@ -7,8 +7,11 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"time"
 
-
+	"github.com/chromedp/cdproto/cdp"
+	_ "github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/chromedp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -127,6 +130,16 @@ func main() {
 		for _, game := range top5Games {
 			fmt.Println(game.Name)
 		}
+
+
+		for  _, game := range top5Games {
+			similarGames, err := getSimilarGames(game, "https://gameslikefinder.com/")
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(similarGames)
+		}
+
 		
 
 
@@ -252,4 +265,61 @@ func equalGamesIn2Users(collection *mongo.Collection, user1, user2 UserChoices) 
 	}
 
 	return games, nil
+}
+
+func getSimilarGames(game Game, baseURL string) ([]string, error) {
+	var nodes []*cdp.Node
+
+	// Construir a URL de pesquisa com base no nome do jogo
+	searchURL := fmt.Sprintf("%s?s=%s", baseURL, game.Name)
+
+	// Configurar opções do Brave
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", false),
+		chromedp.Flag("disable-gpu", true),
+		chromedp.ExecPath("/usr/bin/brave-browser"),
+	)
+
+	// Criar o contexto do Brave e o contexto de cancelamento
+	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer cancel()
+
+	// Criar um novo contexto do Brave
+	ctx, cancel := chromedp.NewContext(allocCtx)
+	defer cancel()
+
+	// Navegar diretamente para a URL de pesquisa
+	err := chromedp.Run(ctx,
+		chromedp.Navigate(searchURL),
+		chromedp.Sleep(2*time.Second), // Aguardar 2 segundos para garantir que a página seja carregada
+
+		// Exemplo de aguardar a resposta (pode ser apropriado para o seu caso)
+		chromedp.Sleep(2*time.Second),
+
+		// le os títulos de cada jogo .gp-loop-title
+		chromedp.Nodes(".gp-loop-title a", &nodes, chromedp.ByQueryAll),
+		//printa os títulos
+	)
+
+
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+
+
+	
+// Extract names and limit to a maximum of 3
+var names []string
+for _, node := range nodes {
+	// Append only the names
+	names = append(names, node.Children[0].NodeValue)
+
+	// Break the loop if the maximum limit is reached
+	if len(names) >= 3 {
+		break
+	}
+}
+
+return names, nil
 }
