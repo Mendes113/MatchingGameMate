@@ -126,6 +126,18 @@ func main() {
 			log.Fatal(err)
 		}
 
+
+		topGamesUserOne , err := gamesForOneUser(collection, user1)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Top games for user 1:")
+		for _, game := range topGamesUserOne {
+			fmt.Println(game.Name)
+		}
+
+		
+
 		fmt.Println("Top 5 games:")
 		for _, game := range top5Games {
 			fmt.Println(game.Name)
@@ -267,6 +279,35 @@ func equalGamesIn2Users(collection *mongo.Collection, user1, user2 UserChoices) 
 	return games, nil
 }
 
+
+func gamesForOneUser(collection *mongo.Collection, user UserChoices) ([]Game, error) {
+	var games []Game
+
+	// Query for games with genres matching those in combinedGenres
+	cursor, err := collection.Find(context.Background(), bson.M{"genres.name": bson.M{"$in": user.Genres}})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var game Game
+		err := cursor.Decode(&game)
+		if err != nil {
+			// Handle the error and continue to the next document
+			log.Println("Error decoding document:", err)
+			continue
+		}
+		games = append(games, game)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return games, nil
+}
+
 func getSimilarGames(game Game, baseURL string) ([]string, error) {
 	var nodes []*cdp.Node
 
@@ -299,6 +340,10 @@ func getSimilarGames(game Game, baseURL string) ([]string, error) {
 		// le os títulos de cada jogo .gp-loop-title
 		chromedp.Nodes(".gp-loop-title a", &nodes, chromedp.ByQueryAll),
 		//printa os títulos
+
+
+		//fecha o navegador
+
 	)
 
 
@@ -320,6 +365,15 @@ for _, node := range nodes {
 		break
 	}
 }
+
+
+//close the browser
+err = chromedp.Cancel(ctx)
+if err != nil {
+	log.Fatal(err)
+	return nil, err
+}
+
 
 return names, nil
 }
