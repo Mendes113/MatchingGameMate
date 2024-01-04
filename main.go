@@ -9,6 +9,7 @@ import (
 	_ "github.com/chromedp/cdproto/cdp"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	
 )
 
 
@@ -48,76 +49,7 @@ func main() {
 
 		controller.StartServer(collection)
 
-
-
-		// games, err := getAllGames()
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-
-		// for _, game := range games.Results {
-		// 	_, err := collection.InsertOne(context.Background(), game)
-		// 	if err != nil {
-		// 		log.Fatal(err)
-		// 	}
-		// }
-
-		
-
-		// for _, game := range gamesFromDB {
-		// 	fmt.Println(game.Name)
-		// }
-
-		
-		
-
-		// user1 := UserChoices{
-		// 	Username: "user1",
-		// 	Genres:   []string{"Action", "Adventure", "RPG"},}
-		// user2 := UserChoices{
-		// 	Username: "user2",
-		// 	Genres:   []string{"Action", "Adventure", "Strategy"},}
-			
-		// equalGames, err := equalGamesIn2Users(collection, user1, user2)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-
-
-
-		// //best games for the 2 users
-		// top5Games, err := top5GamesRated(equalGames)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-
-
-		// topGamesUserOne , err := gamesForOneUser(collection, user1)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-		// fmt.Println("Top games for user 1:")
-		// for _, game := range topGamesUserOne {
-		// 	fmt.Println(game.Name)
-		// }
-
-		
-
-		// fmt.Println("Top 5 games:")
-		// for _, game := range top5Games {
-		// 	fmt.Println(game.Name)
-		// }
-
-
-		// for  _, game := range top5Games {
-		// 	similarGames, err := getSimilarGames(game, "https://gameslikefinder.com/")
-		// 	if err != nil {
-		// 		log.Fatal(err)
-		// 	}
-		// 	fmt.Println(similarGames)
-		// }
-
-		
+	
 
 
 

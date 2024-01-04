@@ -275,3 +275,21 @@ func getAllGames() (*GameListResponse, error) {
 
 	return &GameListResponse{Results: allGames}, nil
 }
+
+
+func SaveUserPreferences(collection *mongo.Collection, username string, genres []string) error {
+	// Crie um novo documento
+	userChoices := UserChoices{
+		Username: username,
+		Genres:   genres,
+	}
+
+	// Insira o documento no banco de dados
+	_, err := collection.InsertOne(context.Background(), userChoices)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
