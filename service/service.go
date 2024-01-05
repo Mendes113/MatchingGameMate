@@ -111,7 +111,7 @@ func GetSimilarGames(game Game, baseURL string) ([]string, error) {
 
 	// Configurar opções do Brave
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", false),
+		chromedp.Flag("headless", true),
 		chromedp.Flag("disable-gpu", true),
 		chromedp.ExecPath("/usr/bin/brave-browser"),
 	)
@@ -148,6 +148,11 @@ func GetSimilarGames(game Game, baseURL string) ([]string, error) {
 	}
 
 
+	// Check if no similar games are found
+	if len(nodes) == 0 {
+		log.Println("No similar games found for", game.Name)
+		return nil, nil
+	}
 	
 // Extract names and limit to a maximum of 3
 var names []string
@@ -241,7 +246,7 @@ func FilterGamesByGenreList(collection *mongo.Collection, genreList []string) ([
 
 
 
-func getAllGames() (*GameListResponse, error) {
+func GetAllGames() (*GameListResponse, error) {
 	var allGames []Game
 	url := fmt.Sprintf("https://api.rawg.io/api/games?key=%s", apiKey)
 
@@ -293,3 +298,14 @@ func SaveUserPreferences(collection *mongo.Collection, username string, genres [
 	return nil
 }
 
+
+func GetUserGenres(collection *mongo.Collection, username string) ([]string, error) {
+	// Query for the user
+	var user UserChoices
+	err := collection.FindOne(context.Background(), bson.M{"username": username}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	return user.Genres, nil
+}

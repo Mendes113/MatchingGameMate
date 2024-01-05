@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"gameMatcher/model"
 	"gameMatcher/service"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,10 @@ func StartServer(collection *mongo.Collection) {
 
 	r.POST("/games", func(c *gin.Context) {
 		GetSimilarGamesTwoUsers(c, collection)
+	})
+
+	r.GET("/all", func(c *gin.Context) {
+		getGamesFromAPI(c)
 	})
 
 	r.Run()
@@ -69,4 +74,52 @@ func GetSimilarGamesTwoUsers(c *gin.Context, collection *mongo.Collection) {
 
 
     c.JSON(200, top5)
+}
+
+
+func getGamesFromAPI(c *gin.Context) {
+	gamesResponse, err := service.GetAllGames()
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(500, gin.H{"error": "Internal Server Error"})
+		return
+	}
+
+	// Extract the relevant information from gamesResponse and create a []model.Game
+	var games []model.Game
+for _, gameItem := range gamesResponse.Results {
+	game := model.Game{
+		Name:   gameItem.Name,
+		Rating: gameItem.Rating,
+	}
+
+	// Convert service.Genre to model.Genre
+	for _, genreItem := range gameItem.Genres {
+		game.Genres = append(game.Genres, ConvertServiceGenreToModelGenre(genreItem))
+	}
+
+	games = append(games, game)
+}
+
+	// Save the extracted games to MongoDB
+	model.SaveGamesInMongoDB(games, model.GetCollection("games"))
+	fmt.Println("Games saved to MongoDB!")
+
+	c.JSON(200, games)
+}
+
+type Game struct {
+	Name    string   `json:"name"`
+	Genres  []Genre  `json:"genres"`
+	Rating  float64  `json:"rating"`
+  }
+  
+  type Genre struct {
+	Name string `json:"name"`
+  }
+
+  func ConvertServiceGenreToModelGenre(serviceGenre service.Genre) model.Genre {
+	return model.Genre{
+		Name: serviceGenre.Name,
+	}
 }
