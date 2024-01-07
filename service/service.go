@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"sort"
 
@@ -19,29 +20,26 @@ import (
 )
 
 type Game struct {
-	Name    string   `json:"name"`
-	Genres  []Genre  `json:"genres"`
-	Rating  float64  `json:"rating"`
-  }
-  
-  type Genre struct {
+	Name   string  `json:"name"`
+	Genres []Genre `json:"genres"`
+	Rating float64 `json:"rating"`
+}
+
+type Genre struct {
 	Name string `json:"name"`
-  }
+}
 
 type GameListResponse struct {
 	Results []Game `json:"results"`
-	Next    string  `json:"next"`
+	Next    string `json:"next"`
 }
-
 
 type UserChoices struct {
 	Username string   `json:"username"`
 	Genres   []string `json:"genres"`
 }
 
-
 const apiKey = "3525e0e6ab9a480dbb58207514234680"
-
 
 func EqualGamesIn2Users(collection *mongo.Collection, user1, user2 UserChoices) ([]Game, error) {
 	var games []Game
@@ -74,7 +72,6 @@ func EqualGamesIn2Users(collection *mongo.Collection, user1, user2 UserChoices) 
 	return games, nil
 }
 
-
 func GamesForOneUser(collection *mongo.Collection, user UserChoices) ([]Game, error) {
 	var games []Game
 
@@ -105,7 +102,7 @@ func GamesForOneUser(collection *mongo.Collection, user UserChoices) ([]Game, er
 
 func GetSimilarGames(game Game, baseURL string) ([]string, error) {
 	var nodes []*cdp.Node
-
+	log.Print("Buscando jogos similares para", game.Name)
 	// Construir a URL de pesquisa com base no nome do jogo
 	searchURL := fmt.Sprintf("%s?s=%s", baseURL, game.Name)
 
@@ -136,57 +133,59 @@ func GetSimilarGames(game Game, baseURL string) ([]string, error) {
 		chromedp.Nodes(".gp-loop-title a", &nodes, chromedp.ByQueryAll),
 		//printa os títulos
 
-
 		//fecha o navegador
 
 	)
-
 
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
 
-
 	// Check if no similar games are found
 	if len(nodes) == 0 {
 		log.Println("No similar games found for", game.Name)
+		cancel()
 		return nil, nil
+
 	}
-	
-// Extract names and limit to a maximum of 3
-var names []string
-for _, node := range nodes {
-	// Append only the names
-	names = append(names, node.Children[0].NodeValue)
 
-	// Break the loop if the maximum limit is reached
-	if len(names) >= 3 {
-		break
+	// Extract names and limit to a maximum of 3
+	var names []string
+	for _, node := range nodes {
+		// Append only the names
+		names = append(names, node.Children[0].NodeValue)
+
+		// Break the loop if the maximum limit is reached
+		if len(names) >= 3 {
+			break
+		}
 	}
+
+	// close the browser
+	err = chromedp.Cancel(ctx)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+
+	return names, nil
 }
-
-
-//close the browser
-err = chromedp.Cancel(ctx)
-if err != nil {
-	log.Fatal(err)
-	return nil, err
-}
-
-
-return names, nil
-}
-
 
 func Top5GamesRated(games []Game) ([]Game, error) {
-	sort.Slice(games, func(i, j int) bool {
-		return games[i].Rating > games[j].Rating
-	})
-	return games[:5], nil
+    if len(games) < 5 {
+        // Handle the case where there are less than 5 games
+        return nil, errors.New("not enough games to get top 5")
+    }
 
+    // Sort games by rating in descending order
+    sort.Slice(games, func(i, j int) bool {
+        return games[i].Rating > games[j].Rating
+    })
+
+    // Return the top 5 games
+    return games[:5], nil
 }
-	
 
 
 func GamesFromMongoDB(collection *mongo.Collection) ([]Game, error) {
@@ -215,7 +214,6 @@ func GamesFromMongoDB(collection *mongo.Collection) ([]Game, error) {
 	return games, nil
 }
 
-
 func FilterGamesByGenreList(collection *mongo.Collection, genreList []string) ([]Game, error) {
 	var games []Game
 	cursor, err := collection.Find(context.Background(), bson.M{"genres.name": bson.M{"$in": genreList}})
@@ -242,15 +240,11 @@ func FilterGamesByGenreList(collection *mongo.Collection, genreList []string) ([
 	return games, nil
 }
 
-
-
-
-
 func GetAllGames() (*GameListResponse, error) {
 	var allGames []Game
 	url := fmt.Sprintf("https://api.rawg.io/api/games?key=%s", apiKey)
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 100; i++ {
 		response, err := http.Get(url)
 		if err != nil {
 			return nil, err
@@ -281,7 +275,6 @@ func GetAllGames() (*GameListResponse, error) {
 	return &GameListResponse{Results: allGames}, nil
 }
 
-
 func SaveUserPreferences(collection *mongo.Collection, username string, genres []string) error {
 	// Crie um novo documento
 	userChoices := UserChoices{
@@ -297,7 +290,6 @@ func SaveUserPreferences(collection *mongo.Collection, username string, genres [
 
 	return nil
 }
-
 
 func GetUserGenres(collection *mongo.Collection, username string) ([]string, error) {
 	// Query for the user
