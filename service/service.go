@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"sort"
+	"strings"
 
 	"fmt"
 	"log"
@@ -187,6 +188,8 @@ func Top5GamesRated(games []Game) ([]Game, error) {
     return games[:5], nil
 }
 
+//formatando os jogos do banco
+
 
 func GamesFromMongoDB(collection *mongo.Collection) ([]Game, error) {
 	var games []Game
@@ -300,4 +303,38 @@ func GetUserGenres(collection *mongo.Collection, username string) ([]string, err
 	}
 
 	return user.Genres, nil
+}
+
+
+
+func FormatGameList(genres []string, games []string) []string {
+	// Formatando os gêneros em uma string
+	genresStr := strings.Join(genres, ", ")
+
+	// Formatando os jogos em uma lista com uma linha de espaço para cada jogo
+	var gamesList []string
+	for _, game := range games {
+		gamesList = append(gamesList, fmt.Sprintf("Jogos encontrados para os gêneros [%s]:\n%s", genresStr, game))
+	}
+
+
+	return gamesList
+}
+
+func FormatDBGamesList(games []Game) []string {
+    var gamesList []string
+    for i, game := range games {
+        formattedGenres := formatGenres(game.Genres)
+        gameEntry := fmt.Sprintf("%d. *%s\n   - Genres: %s\n   - Rating: %.2f", i+1, game.Name, formattedGenres, game.Rating)
+        gamesList = append(gamesList, gameEntry)
+    }
+    return gamesList
+}
+
+func formatGenres(genres []Genre) string {
+    var formattedGenres []string
+    for _, genre := range genres {
+        formattedGenres = append(formattedGenres, fmt.Sprintf("`%s`", genre.Name))
+    }
+    return strings.Join(formattedGenres, " ")
 }

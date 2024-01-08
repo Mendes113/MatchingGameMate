@@ -69,8 +69,8 @@ func sendWelcomeMessage(bot *tgbotapi.BotAPI, chatID int64) {
 
     keyboard := tgbotapi.NewInlineKeyboardMarkup(
         tgbotapi.NewInlineKeyboardRow(
-            tgbotapi.NewInlineKeyboardButtonData("Buscar jogos por gênero", findGamesByGenreCmd),
-            tgbotapi.NewInlineKeyboardButtonData("Buscar jogos similares", findGamesCmd),
+            tgbotapi.NewInlineKeyboardButtonData("Vamos Começar", findGamesByGenreCmd),
+          
         ),
     )
 
@@ -113,7 +113,8 @@ func handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, collection *mong
                     fmt.Println(err)
                     response = "Erro ao buscar jogos"
                 } else {
-                    response = fmt.Sprintf("Os 5 melhores jogos para os gêneros escolhidos são: %v", top5)
+                    formattedGames := service.FormatDBGamesList( top5)
+                    response = fmt.Sprintf("Os 5 melhores jogos para os gêneros escolhidos são:\n%s", strings.Join(formattedGames, "\n"))
                 }
             }
         }
@@ -152,14 +153,15 @@ func handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, collection *mong
                 }
             }
 
-            // Inclui os gêneros escolhidos na mensagem de resposta
+            foundGames = service.FormatGameList(genres, foundGames)
             response = fmt.Sprintf("Jogos encontrados para os gêneros %v: %v", genres, foundGames)
         }
 
    
 
-    msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, response)
-    bot.Send(msg)
+        msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, response)
+       
+        bot.Send(msg)
 }
 }
 
@@ -185,6 +187,9 @@ func optGamesByGenre(callbackQuery *tgbotapi.CallbackQuery, bot *tgbotapi.BotAPI
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Buscar Melhores Jogos Do Genero", "filter_best_games"),
 		),
+        tgbotapi.NewInlineKeyboardRow(
+            tgbotapi.NewInlineKeyboardButtonData("Buscar Jogos Similares Para o Genero", "find_games"),
+        ),
 	)
 
 	// switch case for each genre
@@ -220,3 +225,6 @@ func optGamesByGenre(callbackQuery *tgbotapi.CallbackQuery, bot *tgbotapi.BotAPI
 
 	return selectedGenres
 }
+
+
+
