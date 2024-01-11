@@ -193,3 +193,32 @@ func UpdateGenresToUppercase(collection *mongo.Collection) error {
 
     return nil
 }
+
+
+type SteamGame struct {
+	AppID int `json:"appid"`
+	Name string   `json:"name"`
+}
+
+func SaveSteamResponse(collection *mongo.Collection, games []SteamGame) error {
+	// Crie um contexto
+	ctx := context.TODO()
+
+	// Converte a lista de jogos SteamGame para um array de documentos BSON
+	var documents []interface{}
+	for _, game := range games {
+		document := bson.D{
+			{Key: "appID", Value: game.AppID},
+			{Key: "name", Value: game.Name},
+		}
+		documents = append(documents, document)
+	}
+
+	// Insere os documentos na coleção
+	_, err := collection.InsertMany(ctx, documents)
+	if err != nil {
+		return fmt.Errorf("erro ao inserir na coleção: %v", err)
+	}
+
+	return nil
+}

@@ -10,12 +10,8 @@ import (
 
 	"fmt"
 	"log"
-
-	"time"
-
-	"github.com/chromedp/cdproto/cdp"
 	_ "github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/chromedp"
+	"github.com/gocolly/colly/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -100,74 +96,37 @@ func GamesForOneUser(collection *mongo.Collection, user UserChoices) ([]Game, er
 
 	return games, nil
 }
-
 func GetSimilarGames(game Game, baseURL string) ([]string, error) {
-	var nodes []*cdp.Node
+	var names []string
+
 	log.Print("Buscando jogos similares para", game.Name)
-	// Construir a URL de pesquisa com base no nome do jogo
-	searchURL := fmt.Sprintf("%s?s=%s", baseURL, game.Name)
 
-	// Configurar opções do Brave
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", true),
-		chromedp.Flag("disable-gpu", true),
-		chromedp.ExecPath("/usr/bin/brave-browser"),
-	)
+	// Criar um novo coletor
+	c := colly.NewCollector()
 
-	// Criar o contexto do Brave e o contexto de cancelamento
-	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
-	defer cancel()
+	// Configurar o coletor
+	c.OnHTML(".gp-loop-title a", func(e *colly.HTMLElement) {
+		// Callback para tratar os elementos HTML correspondentes
+		name := e.Text
+		names = append(names, name)
 
-	// Criar um novo contexto do Brave
-	ctx, cancel := chromedp.NewContext(allocCtx)
-	defer cancel()
+		// Limite para um máximo de 3 jogos
+		if len(names) >= 3 {
+			c.Visit("") // Encerrar a coleta
+		}
+	})
 
-	// Navegar diretamente para a URL de pesquisa
-	err := chromedp.Run(ctx,
-		chromedp.Navigate(searchURL),
-		chromedp.Sleep(2*time.Second), // Aguardar 2 segundos para garantir que a página seja carregada
-
-		// Exemplo de aguardar a resposta (pode ser apropriado para o seu caso)
-		chromedp.Sleep(2*time.Second),
-
-		// le os títulos de cada jogo .gp-loop-title
-		chromedp.Nodes(".gp-loop-title a", &nodes, chromedp.ByQueryAll),
-		//printa os títulos
-
-		//fecha o navegador
-
-	)
-
+	// Visitar a URL de pesquisa
+	err := c.Visit(fmt.Sprintf("%s?s=%s", baseURL, game.Name))
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
 
 	// Check if no similar games are found
-	if len(nodes) == 0 {
+	if len(names) == 0 {
 		log.Println("No similar games found for", game.Name)
-		cancel()
 		return nil, nil
-
-	}
-
-	// Extract names and limit to a maximum of 3
-	var names []string
-	for _, node := range nodes {
-		// Append only the names
-		names = append(names, node.Children[0].NodeValue)
-
-		// Break the loop if the maximum limit is reached
-		if len(names) >= 3 {
-			break
-		}
-	}
-
-	// close the browser
-	err = chromedp.Cancel(ctx)
-	if err != nil {
-		log.Fatal(err)
-		return nil, err
 	}
 
 	return names, nil

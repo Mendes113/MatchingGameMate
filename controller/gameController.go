@@ -12,6 +12,7 @@ import (
 
 // StartServer starts the gin server
 func StartServer(collection *mongo.Collection) {
+	
 	r := gin.Default()
 	r.GET("/games", func(c *gin.Context) {
 		getGames(c, collection)
@@ -25,7 +26,11 @@ func StartServer(collection *mongo.Collection) {
 		getGamesFromAPI(c)
 	})
 
-	r.Run()
+	r.GET("getid", func(c *gin.Context){
+		GetSteamGames(c)
+	})
+
+	r.Run(":8081")
 }
 
 func getGames(c *gin.Context, collection *mongo.Collection) {
@@ -122,4 +127,12 @@ type Game struct {
 	return model.Genre{
 		Name: serviceGenre.Name,
 	}
+}
+
+
+
+func GetSteamGames(c *gin.Context) {
+	// Extrair o nome do corpo da solicitação JSON
+
+	service.GetGamesFromSteamAPI1(model.GetCollection("steamGames"))
 }
