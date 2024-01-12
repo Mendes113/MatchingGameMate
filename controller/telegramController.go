@@ -113,8 +113,26 @@ func handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, collection *mong
                     fmt.Println(err)
                     response = "Erro ao buscar jogos"
                 } else {
-                    formattedGames := service.FormatDBGamesList( top5)
-                    response = fmt.Sprintf("Os 5 melhores jogos para os gêneros escolhidos são:\n%s", strings.Join(formattedGames, "\n"))
+                 
+                    for _, game := range top5 {
+                        //getID
+                        SteamGame, err := service.GetSteamGameIdUsingName(collection, game.Name)
+                        if err != nil {
+                            fmt.Println(err)
+                        }
+                        
+                        reviews, err := service.ScrapReviewsFromSteam(SteamGame, collection)
+                        if err != nil {
+                            fmt.Println(err)
+                        }
+
+                           formattedGames := service.FormatDBGamesListWithReview(top5, reviews)
+                             response = fmt.Sprintf("Os 5 melhores jogos para os gêneros escolhidos são:\n%s", strings.Join(formattedGames, "\n"))
+
+                        //     // Lide com o erro conforme necessário, por exemplo, continue com o próximo jogo ou retorne um erro
+                        //     continue
+                        
+                }
                 }
             }
         }
@@ -164,6 +182,8 @@ func handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, collection *mong
         bot.Send(msg)
 }
 }
+
+
 
 
 

@@ -42,10 +42,10 @@ func main() {
 	// }()
 
 
-	// go func() {
-	// 	defer wg.Done()
-	// 	controller.StartTelegram(collection)
-	// }()
+	go func() {
+		defer wg.Done()
+		controller.StartTelegram(collection)
+	}()
 
 	// Wait for both servers to finish
 	wg.Wait()

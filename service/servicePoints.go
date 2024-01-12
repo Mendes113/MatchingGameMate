@@ -152,3 +152,5 @@ type SteamGameAlias SteamGame
 func (s *SteamGameAlias) ToSteamGame() SteamGame {
 	return SteamGame(*s)
 }
+
+

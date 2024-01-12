@@ -280,11 +280,28 @@ func FormatGameList(genres []string, games []string) []string {
 	return gamesList
 }
 
-func FormatDBGamesList(games []Game) []string {
+
+
+func FormatGameListWithReview(genres []string, games []string,review string) []string {
+	// Formatando os gêneros em uma string
+	genresStr := strings.Join(genres, ", ")
+
+	// Formatando os jogos em uma lista com uma linha de espaço para cada jogo
+	var gamesList []string
+	for _, game := range games {
+		gamesList = append(gamesList, fmt.Sprintf("Jogos encontrados para os gêneros [%s]:\n%s \n As reviews da Steam são: %s", genresStr, game, review))
+	}
+
+
+	return gamesList
+}
+
+
+func FormatDBGamesListWithReview(games []Game, review string) []string {
     var gamesList []string
     for i, game := range games {
         formattedGenres := formatGenres(game.Genres)
-        gameEntry := fmt.Sprintf("%d. *%s\n   - Genres: %s\n   - Rating: %.2f", i+1, game.Name, formattedGenres, game.Rating)
+        gameEntry := fmt.Sprintf("%d. *%s\n   - Genres: %s\n   - Rating: %.2f \n Riview:%s ", i+1, game.Name, formattedGenres, game.Rating, review)
         gamesList = append(gamesList, gameEntry)
     }
     return gamesList

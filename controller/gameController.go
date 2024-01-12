@@ -227,8 +227,10 @@ func GetGameIdByNameFiber(c *fiber.Ctx) error {
 
     return c.JSON(fiber.Map{"gameId": gameId})
 }
+
+
 func GetReviews(c *fiber.Ctx) error {
-	// Extrair o nome do corpo da solicitação JSON
+	log.Print("Recebendo requisição para buscar reviews")
 	var requestBody RequestBody
 	if err := c.BodyParser(&requestBody); err != nil {
 		fmt.Println(err)
@@ -246,7 +248,8 @@ func GetReviews(c *fiber.Ctx) error {
 		fmt.Println(err)
 		return c.Status(500).JSON(fiber.Map{"error": "Internal Server Error"})
 	}
-
+	
 	return c.JSON(fiber.Map{"reviews": reviews})
+
 }
 
