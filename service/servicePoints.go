@@ -7,7 +7,8 @@ import (
 	"gameMatcher/model"
 	"log"
 	"net/http"
-
+	"github.com/jaytaylor/html2text"
+	"github.com/gocolly/colly/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -91,4 +92,63 @@ func GetGamesFromSteamAPI1(collection *mongo.Collection) ([]SteamGame, error) {
 	}
 
 	return result["applist"].Apps, nil
+}
+
+
+func GetSteamGameIdUsingName(collection *mongo.Collection, name string) (SteamGame, error) {
+    // Use o contexto de fundo como exemplo, você pode querer usar um contexto apropriado no seu aplicativo
+    ctx := context.TODO()
+	log.Printf("Buscando jogo com o nome '%s' na coleção", name)
+    game, err := model.GetSteamGameIdUsingName(collection, ctx, name)
+    if err != nil {
+        return SteamGame{}, fmt.Errorf("erro ao buscar jogo: %v", err)
+    }
+
+    return SteamGame(game), nil
+}
+
+func ScrapReviewsFromSteam(game SteamGame, collection *mongo.Collection) (string, error) {
+	gameID, err := GetSteamGameIdUsingName(collection, game.Name)
+	if err != nil {
+		return "", fmt.Errorf("error getting Steam game ID: %v", err)
+	}
+	game.AppID = gameID.AppID
+	steambaseURL := "https://store.steampowered.com/app/"
+	url := fmt.Sprintf("%s%d/%s", steambaseURL, game.AppID, game.Name)
+	fmt.Println(url)
+
+	// Create a new collector
+	c := colly.NewCollector()
+
+	// Variable to store reviews
+	var reviews string
+
+	// Encontre e raspe o seletor desejado
+	c.OnHTML(".glance_ctn .user_reviews", func(e *colly.HTMLElement) {
+		rawReviews := e.Text
+		cleanedReviews, err := html2text.FromString(rawReviews, html2text.Options{PrettyTables: true})
+		if err != nil {
+			log.Println("Error cleaning reviews:", err)
+			reviews = rawReviews // Se houver um erro, use o texto original
+		} else {
+			reviews = cleanedReviews
+		}
+		fmt.Println("User Reviews:", reviews)
+	})
+
+	// Visite a URL do jogo
+	err = c.Visit(url)
+	if err != nil {
+		log.Fatal(err)
+		return "Error Ao visitar URL", err
+	}
+
+	return reviews, nil
+}
+
+
+type SteamGameAlias SteamGame
+
+func (s *SteamGameAlias) ToSteamGame() SteamGame {
+	return SteamGame(*s)
 }

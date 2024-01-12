@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,27 +15,42 @@ import (
 )
 
 
-func MongoConnection() *mongo.Client {
-	// Set client options
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
 
-	// Connect to MongoDB
-	mongoClient, err := mongo.Connect(context.Background(), clientOptions)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	// Check the connection
-	err = mongoClient.Ping(context.Background(), nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+var (
+	mongoClient *mongo.Client
+	once        sync.Once
+)
 
-	fmt.Println("Connected to MongoDB!")
+// getMongoClient returns a MongoDB client using a singleton pattern.
+func getMongoClient() *mongo.Client {
+	once.Do(func() {
+		// Set client options
+		clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+
+		// Connect to MongoDB
+		client, err := mongo.Connect(context.Background(), clientOptions)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Check the connection
+		err = client.Ping(context.Background(), nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("Connected to MongoDB!")
+		mongoClient = client
+	})
 
 	return mongoClient
 }
 
+// MongoConnection returns the MongoDB client using a singleton pattern.
+func MongoConnection() *mongo.Client {
+	return getMongoClient()
+}
 
 func GetCollection(collectionName string) *mongo.Collection {
 	mongoClient := MongoConnection()
@@ -221,4 +237,27 @@ func SaveSteamResponse(collection *mongo.Collection, games []SteamGame) error {
 	}
 
 	return nil
+}
+
+
+
+func GetSteamGameIdUsingName(collection *mongo.Collection, ctx context.Context, name string) (SteamGame, error) {
+    filter := bson.M{"name": name}
+    var result SteamGame
+
+    err := collection.FindOne(ctx, filter).Decode(&result)
+    if err != nil {
+        notFoundError := fmt.Errorf("jogo com o nome '%s' não encontrado", name)
+        genericError := fmt.Errorf("erro ao buscar jogo: %v", err)
+
+        if err == mongo.ErrNoDocuments {
+            log.Print("Jogo não encontrado")
+            return SteamGame{}, notFoundError
+        }
+
+        log.Printf("Erro ao buscar jogo: %v", err)
+        return SteamGame{}, genericError
+    }
+
+    return result, nil
 }

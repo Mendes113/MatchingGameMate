@@ -20,39 +20,26 @@ func main() {
 	
 	var wg sync.WaitGroup
 
-	// gamesResponse, err := service.GetAllGames()
-    // if err != nil {
-    //     log.Fatal(err)
-    // }
 
-    // // Convert []service.Game to []model.Game
-    // var games []model.Game
-    // for _, game := range gamesResponse.Results {
-    //     // Assuming model.Game has the same structure as service.Game
-    //     convertedGame := model.Game{
-    //         Name:   game.Name,
-    //         Rating: game.Rating,
-    //         Genres: convertGenres(game.Genres),
-    //     }
-    //     games = append(games, convertedGame)
-    // }
-
-    // model.SaveGamesInMongoDB(games, collection)
-
-	// Increment the WaitGroup counter for each server
-	wg.Add(2)
+	wg.Add(1)
 
 	// Run the HTTP server in a goroutine
 	go func() {
 		defer wg.Done()
-		controller.StartServer(collection)
+
+		serverConfig := controller.ServerConfig{
+			Collection: collection,
+			Port:       ":7082",
+		}
+		controller.StartServer(serverConfig)
 	}()
 
+	
 	// Run the Discord server in a goroutine
-	go func() {
-		defer wg.Done()
-		controller.StartDiscord(collection)
-	}()
+	// go func() {
+	// 	defer wg.Done()
+	// 	controller.StartDiscord(collection)
+	// }()
 
 
 	// go func() {
