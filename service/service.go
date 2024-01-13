@@ -314,3 +314,10 @@ func formatGenres(genres []Genre) string {
     }
     return strings.Join(formattedGenres, " ")
 }
+
+func FormatGameToSteamGame(game Game) SteamGame {
+	return SteamGame{
+		Name:  game.Name,
+	
+	}
+}

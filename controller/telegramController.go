@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"gameMatcher/model"
 	"gameMatcher/service"
 	"log"
 	"os"
@@ -12,7 +13,6 @@ import (
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
-
 )
 
 var userGenreChoices = make(map[int64][]string)
@@ -113,24 +113,19 @@ func handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, collection *mong
                     fmt.Println(err)
                     response = "Erro ao buscar jogos"
                 } else {
-                 
-                    for _, game := range top5 {
-                        //getID
-                        SteamGame, err := service.GetSteamGameIdUsingName(collection, game.Name)
-                        if err != nil {
-                            fmt.Println(err)
-                        }
-                        
-                        reviews, err := service.ScrapReviewsFromSteam(SteamGame, collection)
-                        if err != nil {
-                            fmt.Println(err)
-                        }
-
+                        for _, game := range top5 {
+                        	steamGame := service.FormatGameToSteamGame(game)
+                            reviews, err := service.ScrapReviewsFromSteam(steamGame, model.GetCollection("steamGames"))
+                            if err != nil {
+                                fmt.Println(err)
+                            } else {
+                              
                            formattedGames := service.FormatDBGamesListWithReview(top5, reviews)
                              response = fmt.Sprintf("Os 5 melhores jogos para os gêneros escolhidos são:\n%s", strings.Join(formattedGames, "\n"))
 
-                        //     // Lide com o erro conforme necessário, por exemplo, continue com o próximo jogo ou retorne um erro
-                        //     continue
+                            // Lide com o erro conforme necessário, por exemplo, continue com o próximo jogo ou retorne um erro
+                            continue
+                            }
                         
                 }
                 }

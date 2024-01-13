@@ -103,7 +103,8 @@ func GetSteamGameIdUsingName(collection *mongo.Collection, name string) (SteamGa
     if err != nil {
         return SteamGame{}, fmt.Errorf("erro ao buscar jogo: %v", err)
     }
-
+	log.Printf("Jogo encontrado: %v e %v", game, game.AppID)
+	
     return SteamGame(game), nil
 }
 
@@ -153,4 +154,16 @@ func (s *SteamGameAlias) ToSteamGame() SteamGame {
 	return SteamGame(*s)
 }
 
+func GetGameReviewFromGameName(collection *mongo.Collection, name string) (string, error) {
+	game, err := GetSteamGameIdUsingName(collection, name)
+	if err != nil {
+		return "", fmt.Errorf("error getting Steam game ID: %v", err)
+	}
 
+	reviews, err := ScrapReviewsFromSteam(game, collection)
+	if err != nil {
+		return "", fmt.Errorf("error getting Steam game reviews: %v", err)
+	}
+
+	return reviews, nil
+}

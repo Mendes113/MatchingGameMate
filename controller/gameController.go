@@ -41,6 +41,11 @@ func StartServer(config ServerConfig) {
 		return nil
 	})
 
+	app.Post("/getreview", func(c *fiber.Ctx) error {
+		ReviewFromName(c)
+		return nil
+	})
+
 
 	err := app.Listen(config.Port)
 	if err != nil {
@@ -253,3 +258,31 @@ func GetReviews(c *fiber.Ctx) error {
 
 }
 
+
+func ReviewFromName(c *fiber.Ctx) error {
+	log.Print("Recebendo requisição para buscar reviews")
+	var requestBody RequestBody
+	if err := c.BodyParser(&requestBody); err != nil {
+		fmt.Println(err)
+		return c.Status(400).JSON(fiber.Map{"error": "Bad Request"})
+	}
+
+	// Agora você pode acessar o nome diretamente usando requestBody.Name
+	game := service.SteamGame{Name: requestBody.Name}
+	gamewithId,err := service.GetSteamGameIdUsingName(model.GetCollection("steamGames"), game.Name)
+	if err != nil {
+		fmt.Println(err)
+		return c.Status(500).JSON(fiber.Map{"error": "Internal Server Error"})
+	}
+	game.AppID = gamewithId.AppID
+	log.Print(game.AppID)
+
+	review,err := service.GetGameReviewFromGameName(model.GetCollection("steamGames"), game.Name)
+	if err != nil {
+		fmt.Println(err)
+		return c.Status(500).JSON(fiber.Map{"error": "Internal Server Error"})
+	}
+
+	return c.JSON(fiber.Map{"reviews": review})
+
+}
