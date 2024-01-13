@@ -160,6 +160,23 @@ func handleCallbackQuery(callbackQuery *tgbotapi.CallbackQuery, collection *mong
             for _, game := range gamesGenre {
                 similarGames, err := service.GetSimilarGames(game, baseURL)
                 if err != nil {
+                    fmt.Println(err)
+                }
+                // formattedGame := service.FormatGameToSteamGame(game)
+                // steamGame, err := service.GetSteamGameIdUsingName(model.GetCollection("steamGames"), formattedGame.Name)
+                // if err != nil {
+                //     fmt.Println(err)
+                // }
+                // formattedGame.AppID = steamGame.AppID
+                // reviews, err := service.ScrapReviewsFromSteam(formattedGame, model.GetCollection("steamGames"))
+                // log.Printf("Reviews: %s", reviews)
+               
+                // reviews, err := service.ScrapReviewsFromSteam(steamGame, model.GetCollection("steamGames"))
+                
+                if err != nil {
+                    fmt.Println(err)
+                }
+                if err != nil {
                     response = fmt.Sprintf("Erro ao buscar jogos similares para %s", game.Name)
                 } else {
                     foundGames = append(foundGames, similarGames...)
